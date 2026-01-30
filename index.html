@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Drink Tally 🍻</title>
+  <style>
+    :root{
+      --bg:#0b0f19; --card:#121a2b; --card2:#0f1729;
+      --text:#eef2ff; --muted:#a9b4d0; --accent:#4f8cff;
+      --good:#2dd4bf; --warn:#fb7185; --line:#22304f;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 20% 0%, #152044 0%, var(--bg) 55%);
+      color:var(--text);
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:18px}
+    header{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(18,26,43,.85), rgba(15,23,41,.75));
+      box-shadow: var(--shadow);
+      position:sticky;top:10px;backdrop-filter: blur(10px);
+      z-index:10;
+    }
+    h1{font-size:18px;margin:0;letter-spacing:.2px}
+    .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(79,140,255,.12);
+      color:var(--text);
+      padding:10px 12px;border-radius:14px;
+      font-weight:650;cursor:pointer;
+      display:inline-flex;align-items:center;gap:8px;
+      transition: transform .05s ease, background .15s ease, border .15s ease;
+      user-select:none;
+    }
+    .btn:active{transform: translateY(1px)}
+    .btn.secondary{background: rgba(169,180,208,.10)}
+    .btn.danger{background: rgba(251,113,133,.12); border-color: rgba(251,113,133,.35)}
+    .btn.good{background: rgba(45,212,191,.12); border-color: rgba(45,212,191,.35)}
+    .btn.small{padding:8px 10px;border-radius:12px;font-size:13px}
+    .pill{
+      padding:6px 10px;border-radius:999px;border:1px solid var(--line);
+      color:var(--muted);font-size:12px;background: rgba(169,180,208,.07)
+    }
+    .grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:14px}
+    .card{
+      border:1px solid var(--line); border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(18,26,43,.9), rgba(15,23,41,.85));
+      box-shadow: var(--shadow);
+      padding:14px;
+      position:relative;
+      overflow:hidden;
+    }
+    .card:before{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(600px 200px at 20% 0%, rgba(79,140,255,.18), transparent 60%);
+      pointer-events:none;
+    }
+    .card > *{position:relative}
+    .who{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+    .name{display:flex;align-items:center;gap:10px}
+    .emoji{font-size:22px}
+    .title{font-weight:800}
+    .count{
+      font-size:44px; font-weight:900; line-height:1;
+      text-align:center; margin:10px 0 12px;
+    }
+    .controls{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .big{
+      padding:14px 12px;border-radius:16px;
+      border:1px solid var(--line);
+      background: rgba(79,140,255,.16);
+      font-size:18px;font-weight:900; cursor:pointer;
+    }
+    .big:active{transform: translateY(1px)}
+    .minus{background: rgba(251,113,133,.12); border-color: rgba(251,113,133,.35)}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .muted{color:var(--muted)}
+    .section{margin-top:14px;display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
+    @media (max-width:860px){ .section{grid-template-columns:1fr} }
+    .panel{
+      border:1px solid var(--line);border-radius:var(--radius);
+      background: rgba(15,23,41,.7);
+      padding:14px; box-shadow: var(--shadow);
+    }
+    .panel h2{margin:0 0 10px;font-size:15px}
+    .field{display:grid;gap:6px;margin:10px 0}
+    label{font-size:12px;color:var(--muted)}
+    input, textarea, select{
+      width:100%;
+      padding:12px 12px;border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(10,14,26,.7);
+      color:var(--text);
+      outline:none;
+    }
+    textarea{min-height:88px; resize:vertical}
+    .results{margin-top:8px;display:grid;gap:8px}
+    .resultRow{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:10px 12px;border-radius:14px;border:1px solid var(--line);
+      background: rgba(169,180,208,.06)
+    }
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      background: rgba(15,23,41,.9);
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:10px 12px;border-radius:999px;
+      box-shadow: var(--shadow);
+      opacity:0; pointer-events:none;
+      transition: opacity .2s ease;
+      font-size:13px;
+      z-index:50;
+    }
+    .toast.show{opacity:1}
+    .modeTabs{
+      display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start
+    }
+    .tab{
+      padding:10px 12px;border-radius:999px;border:1px solid var(--line);
+      background: rgba(169,180,208,.06);
+      cursor:pointer;font-weight:750;font-size:13px;
+    }
+    .tab.active{background: rgba(79,140,255,.16); border-color: rgba(79,140,255,.5)}
+    .confetti{
+      position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:60;
+    }
+    .piece{
+      position:absolute; top:-20px;
+      width:10px; height:14px; border-radius:3px;
+      background: currentColor;
+      animation: fall 900ms ease-in forwards;
+      opacity:.95;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,.35));
+    }
+    @keyframes fall{
+      to{ transform: translateY(calc(100vh + 40px)) rotate(380deg); opacity:0.95;}
+    }
+    .footerNote{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.35}
+    .splitLine{height:1px;background:var(--line);margin:12px 0}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      padding:2px 6px;border-radius:8px;border:1px solid var(--line);
+      background: rgba(169,180,208,.06);font-size:12px;color:var(--text)
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Drink Tally 🍻</h1>
+        <div class="sub">Tap-friendly drink tracking + fair split</div>
+      </div>
+      <div class="row">
+        <span id="lockPill" class="pill">🔓 Unlocked</span>
+        <button class="btn secondary" id="undoBtn">↩️ Undo</button>
+        <button class="btn secondary" id="lockBtn">🔒 Lock</button>
+        <button class="btn danger" id="resetBtn">🧨 Reset</button>
+      </div>
+    </header>
+
+    <div style="margin-top:12px" class="modeTabs">
+      <div class="tab active" id="tabGroup">Group Board</div>
+      <div class="tab" id="tabSelf">My Counter</div>
+    </div>
+
+    <!-- GROUP BOARD -->
+    <div id="groupView">
+      <div style="margin-top:14px" class="row">
+        <button class="btn good" id="addPersonBtn">➕ Add person</button>
+        <button class="btn secondary" id="importBtn">📥 Import tally code</button>
+        <span class="pill" id="totalPill">Total drinks: 0</span>
+      </div>
+
+      <div class="grid" id="cards"></div>
+
+      <div class="section">
+        <div class="panel">
+          <h2>Split the bill</h2>
+
+          <div class="field">
+            <label>Total bill (e.g., 12000)</label>
+            <input id="billInput" inputmode="numeric" placeholder="Enter total bill" />
+          </div>
+
+          <div class="field">
+            <label>Shared base (optional: table fee / appetizers). Split evenly.</label>
+            <input id="sharedInput" inputmode="numeric" placeholder="0" />
+          </div>
+
+          <div class="row" style="justify-content:flex-start;margin-top:6px">
+            <button class="btn" id="calcBtn">🧮 Calculate</button>
+            <button class="btn secondary" id="copyBtn">📋 Copy results</button>
+          </div>
+
+          <div class="splitLine"></div>
+          <div class="results" id="results"></div>
+
+          <div class="footerNote">
+            Assumes drinks are roughly the same price. Shared base is optional (split evenly), remaining amount is split by drink count.
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Import tallies (for “everyone taps”)</h2>
+          <div class="muted" style="font-size:13px;line-height:1.4">
+            If everyone uses <b>My Counter</b> on their own phone, they can share a <b>tally code</b>.
+            Paste one or more codes here to update the Group Board.
+          </div>
+
+          <div class="field">
+            <label>Paste tally code(s), one per line</label>
+            <textarea id="importArea" placeholder="Paste codes here…"></textarea>
+          </div>
+
+          <div class="row" style="justify-content:flex-start">
+            <button class="btn good" id="applyImportBtn">✅ Apply import</button>
+            <button class="btn secondary" id="clearImportBtn">🧽 Clear</button>
+          </div>
+
+          <div class="footerNote">
+            Tip: If someone’s name differs slightly, it will create a new person. (So tell friends to set a name once and keep it.)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SELF COUNTER -->
+    <div id="selfView" style="display:none;margin-top:14px">
+      <div class="panel">
+        <h2>My Counter</h2>
+
+        <div class="field">
+          <label>My name</label>
+          <input id="myName" placeholder="e.g., RJ" />
+        </div>
+
+        <div class="field">
+          <label>My emoji</label>
+          <input id="myEmoji" placeholder="e.g., 😎" />
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="who">
+            <div class="name">
+              <div class="emoji" id="selfEmoji">🙂</div>
+              <div>
+                <div class="title" id="selfTitle">Me</div>
+                <div class="muted" style="font-size:12px">Tap your drink count</div>
+              </div>
+            </div>
+            <span class="pill" id="selfMilestone">Next milestone: 5</span>
+          </div>
+
+          <div class="count" id="selfCount">0</div>
+
+          <div class="controls">
+            <button class="big" id="selfPlus">+1 🍺</button>
+            <button class="big minus" id="selfMinus">-1</button>
+          </div>
+
+          <div class="meta">
+            <button class="btn secondary small" id="selfReset">Reset me</button>
+            <button class="btn small" id="shareCodeBtn">🔁 Generate tally code</button>
+            <button class="btn secondary small" id="copyCodeBtn">📋 Copy code</button>
+          </div>
+
+          <div class="field" style="margin-top:10px">
+            <label>Your tally code (share this with the host)</label>
+            <textarea id="codeBox" readonly></textarea>
+          </div>
+
+          <div class="footerNote">
+            This won’t sync automatically across phones. Use the tally code to send your count to the Group Board host.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast">Saved</div>
+  <div class="confetti" id="confetti"></div>
+
+<script>
+  // -----------------------
+  // Storage + helpers
+  // -----------------------
+  const LS_KEY = "drink_tally_v1";
+  const LS_SELF = "drink_tally_self_v1";
+
+  const $ = (id) => document.getElementById(id);
+  const toast = (msg) => {
+    const el = $("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    setTimeout(()=>el.classList.remove("show"), 1200);
+  };
+
+  const safeParse = (s, fallback) => {
+    try { return JSON.parse(s); } catch { return fallback; }
+  };
+
+  const formatMoney = (n) => {
+    if (!isFinite(n)) return "—";
+    // Simple formatting (works fine for ¥ too)
+    return Math.round(n).toLocaleString();
+  };
+
+  const clamp0 = (n) => Math.max(0, n|0);
+
+  const confettiBurst = () => {
+    const holder = $("confetti");
+    holder.innerHTML = "";
+    const colors = ["#4f8cff","#2dd4bf","#fb7185","#a9b4d0","#fbbf24","#c084fc"];
+    const pieces = 24;
+    for(let i=0;i<pieces;i++){
+      const p = document.createElement("div");
+      p.className = "piece";
+      p.style.left = (Math.random()*100) + "vw";
+      p.style.color = colors[(Math.random()*colors.length)|0];
+      p.style.animationDuration = (700 + Math.random()*700) + "ms";
+      p.style.transform = `translateY(-20px) rotate(${Math.random()*180}deg)`;
+      holder.appendChild(p);
+    }
+    setTimeout(()=> holder.innerHTML="", 1400);
+  };
+
+  // -----------------------
+  // App state
+  // -----------------------
+  let state = safeParse(localStorage.getItem(LS_KEY), {
+    locked: false,
+    people: [
+      { id: crypto.randomUUID(), name: "Alex", emoji:"😄", count: 0 },
+      { id: crypto.randomUUID(), name: "Sam",  emoji:"🧠", count: 0 },
+      { id: crypto.randomUUID(), name: "You",  emoji:"😎", count: 0 },
+    ],
+    history: [] // for undo
+  });
+
+  let selfState = safeParse(localStorage.getItem(LS_SELF), {
+    name: "Me",
+    emoji: "🙂",
+    count: 0
+  });
+
+  const save = () => {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  };
+  const saveSelf = () => {
+    localStorage.setItem(LS_SELF, JSON.stringify(selfState));
+  };
+
+  const totalDrinks = () => state.people.reduce((a,p)=>a + (p.count|0), 0);
+
+  const setLockedUI = () => {
+    $("lockPill").textContent = state.locked ? "🔒 Locked" : "🔓 Unlocked";
+    $("lockBtn").textContent = state.locked ? "🔓 Unlock" : "🔒 Lock";
+  };
+
+  // -----------------------
+  // Rendering
+  // -----------------------
+  const renderCards = () => {
+    const wrap = $("cards");
+    wrap.innerHTML = "";
+    state.people.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <div class="who">
+          <div class="name">
+            <div class="emoji">${escapeHtml(p.emoji || "🙂")}</div>
+            <div>
+              <div class="title">${escapeHtml(p.name || "Friend")}</div>
+              <div class="muted" style="font-size:12px">Tap to add a drink</div>
+            </div>
+          </div>
+          <button class="btn secondary small" data-action="edit">✏️</button>
+        </div>
+        <div class="count">${p.count|0}</div>
+        <div class="controls">
+          <button class="big" data-action="plus">+1 🍻</button>
+          <button class="big minus" data-action="minus">-1</button>
+        </div>
+        <div class="meta">
+          <span class="pill">ID: ${p.id.slice(0,6)}</span>
+          <button class="btn secondary small" data-action="remove">🗑️ Remove</button>
+        </div>
+      `;
+
+      card.addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if(!btn) return;
+        const action = btn.dataset.action;
+        if(!action) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        if(action === "plus") inc(p.id, +1);
+        if(action === "minus") inc(p.id, -1);
+        if(action === "edit") editPerson(p.id);
+        if(action === "remove") removePerson(p.id);
+      });
+
+      wrap.appendChild(card);
+    });
+
+    $("totalPill").textContent = `Total drinks: ${totalDrinks()}`;
+  };
+
+  const renderResults = (rows) => {
+    const out = $("results");
+    out.innerHTML = "";
+    rows.forEach(r => {
+      const div = document.createElement("div");
+      div.className = "resultRow";
+      div.innerHTML = `
+        <div><b>${escapeHtml(r.label)}</b> <span class="muted">(${r.count} drinks)</span></div>
+        <div><b>${r.amount}</b></div>
+      `;
+      out.appendChild(div);
+    });
+  };
+
+  const renderSelf = () => {
+    $("myName").value = selfState.name || "";
+    $("myEmoji").value = selfState.emoji || "";
+    $("selfTitle").textContent = selfState.name || "Me";
+    $("selfEmoji").textContent = selfState.emoji || "🙂";
+    $("selfCount").textContent = selfState.count|0;
+
+    const c = selfState.count|0;
+    const next = c < 5 ? 5 : c < 10 ? 10 : c < 15 ? 15 : c < 20 ? 20 : (Math.floor(c/10)+1)*10;
+    $("selfMilestone").textContent = `Next milestone: ${next}`;
+  };
+
+  // Simple HTML escape for user input
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  // -----------------------
+  // Actions
+  // -----------------------
+  const pushHistory = (entry) => {
+    state.history.push(entry);
+    if(state.history.length > 60) state.history.shift();
+  };
+
+  const inc = (id, delta) => {
+    if(state.locked) return toast("Locked 🔒");
+
+    const p = state.people.find(x => x.id === id);
+    if(!p) return;
+
+    const before = p.count|0;
+    const after = clamp0(before + delta);
+    if(after === before) return;
+
+    pushHistory({ type:"inc", id, before, after });
+    p.count = after;
+    save();
+    renderCards();
+    if(after === 5 || after === 10 || after === 15 || after === 20) confettiBurst();
+  };
+
+  const editPerson = (id) => {
+    if(state.locked) return toast("Locked 🔒");
+    const p = state.people.find(x => x.id === id);
+    if(!p) return;
+
+    const name = prompt("Name:", p.name || "") ?? p.name;
+    const emoji = prompt("Emoji (1 char is best):", p.emoji || "🙂") ?? p.emoji;
+
+    const before = { name: p.name, emoji: p.emoji };
+    p.name = (name || "Friend").trim();
+    p.emoji = (emoji || "🙂").trim().slice(0,2);
+
+    pushHistory({ type:"edit", id, before, after: { name:p.name, emoji:p.emoji } });
+    save();
+    renderCards();
+  };
+
+  const removePerson = (id) => {
+    if(state.locked) return toast("Locked 🔒");
+    const idx = state.people.findIndex(x => x.id === id);
+    if(idx < 0) return;
+
+    if(!confirm("Remove this person?")) return;
+    const removed = state.people[idx];
+    pushHistory({ type:"remove", removed, index: idx });
+    state.people.splice(idx,1);
+    save();
+    renderCards();
+    toast("Removed");
+  };
+
+  const addPerson = () => {
+    if(state.locked) return toast("Locked 🔒");
+    const name = (prompt("Name?") || "").trim();
+    if(!name) return;
+
+    const emoji = (prompt("Emoji? (optional)") || "🙂").trim().slice(0,2);
+    const person = { id: crypto.randomUUID(), name, emoji, count: 0 };
+    pushHistory({ type:"add", person });
+    state.people.push(person);
+    save();
+    renderCards();
+    toast("Added");
+  };
+
+  const undo = () => {
+    const last = state.history.pop();
+    if(!last) return toast("Nothing to undo");
+
+    if(last.type === "inc"){
+      const p = state.people.find(x => x.id === last.id);
+      if(p) p.count = last.before;
+    }
+    if(last.type === "edit"){
+      const p = state.people.find(x => x.id === last.id);
+      if(p){ p.name = last.before.name; p.emoji = last.before.emoji; }
+    }
+    if(last.type === "add"){
+      state.people = state.people.filter(x => x.id !== last.person.id);
+    }
+    if(last.type === "remove"){
+      state.people.splice(last.index, 0, last.removed);
+    }
+
+    save();
+    renderCards();
+    toast("Undone");
+  };
+
+  const resetAll = () => {
+    if(!confirm("Reset all counts (and results)?")) return;
+    state.people.forEach(p => p.count = 0);
+    state.history = [];
+    save();
+    renderCards();
+    renderResults([]);
+    $("billInput").value = "";
+    $("sharedInput").value = "";
+    toast("Reset");
+  };
+
+  const calcSplit = () => {
+    const bill = Number(($("billInput").value || "0").replace(/,/g,""));
+    const shared = Number(($("sharedInput").value || "0").replace(/,/g,""));
+
+    const people = state.people.slice();
+    const tDrinks = totalDrinks();
+
+    if(!isFinite(bill) || bill <= 0) return toast("Enter a total bill");
+    if(!isFinite(shared) || shared < 0) return toast("Shared base must be 0+");
+    if(people.length === 0) return toast("No people");
+    if(tDrinks <= 0) return toast("No drinks counted yet");
+
+    const sharedPer = shared / people.length;
+    const remainder = bill - shared;
+
+    if(remainder < 0) return toast("Shared base is bigger than bill");
+
+    const costPerDrink = remainder / tDrinks;
+
+    const rows = people.map(p => {
+      const amt = sharedPer + (p.count|0) * costPerDrink;
+      return {
+        label: `${p.emoji || "🙂"} ${p.name || "Friend"}`,
+        count: p.count|0,
+        amount: formatMoney(amt)
+      };
+    });
+
+    renderResults(rows);
+    toast("Calculated");
+  };
+
+  const copyResults = async () => {
+    const out = $("results");
+    if(!out.children.length) return toast("No results yet");
+    const bill = $("billInput").value || "";
+    const shared = $("sharedInput").value || "0";
+    const lines = [];
+    lines.push(`Drink Tally 🍻`);
+    if(bill) lines.push(`Total bill: ${bill}`);
+    lines.push(`Shared base: ${shared}`);
+    lines.push(`Total drinks: ${totalDrinks()}`);
+    lines.push("");
+    [...out.children].forEach(row => {
+      const left = row.children[0].innerText;
+      const right = row.children[1].innerText;
+      lines.push(`${left} → ${right}`);
+    });
+    const text = lines.join("\n");
+    try{
+      await navigator.clipboard.writeText(text);
+      toast("Copied ✅");
+    }catch{
+      toast("Copy failed (browser permission)");
+    }
+  };
+
+  // -----------------------
+  // Import / Export tally codes
+  // -----------------------
+  // Code format: DT1.<base64url(json)>
+  const b64urlEncode = (obj) => {
+    const json = JSON.stringify(obj);
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    return b64.replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
+  };
+  const b64urlDecode = (s) => {
+    const pad = "=".repeat((4 - (s.length % 4)) % 4);
+    const b64 = (s + pad).replaceAll("-","+").replaceAll("_","/");
+    const json = decodeURIComponent(escape(atob(b64)));
+    return JSON.parse(json);
+  };
+
+  const makeTallyCode = (name, emoji, count) => {
+    const payload = { v:1, name, emoji, count: count|0, ts: Date.now() };
+    return "DT1." + b64urlEncode(payload);
+  };
+
+  const applyTallyCode = (code) => {
+    const trimmed = (code || "").trim();
+    if(!trimmed) return { ok:false, msg:"Empty code" };
+    if(!trimmed.startsWith("DT1.")) return { ok:false, msg:"Not a DT1 code" };
+
+    let payload;
+    try{ payload = b64urlDecode(trimmed.slice(4)); }
+    catch{ return { ok:false, msg:"Bad code" }; }
+
+    const name = String(payload.name || "").trim() || "Friend";
+    const emoji = String(payload.emoji || "🙂").trim().slice(0,2) || "🙂";
+    const count = clamp0(payload.count);
+
+    // Find by exact name first (simple + predictable)
+    let p = state.people.find(x => (x.name || "").trim() === name);
+    if(!p){
+      p = { id: crypto.randomUUID(), name, emoji, count: 0 };
+      state.people.push(p);
+      pushHistory({ type:"add", person: p });
+    }
+
+    // Update fields
+    const before = { name: p.name, emoji: p.emoji, count: p.count|0 };
+    p.name = name;
+    p.emoji = emoji;
+    p.count = count;
+
+    pushHistory({ type:"import", id:p.id, before, after:{ name, emoji, count } });
+    return { ok:true, name, count };
+  };
+
+  const applyImportArea = () => {
+    if(state.locked) return toast("Locked 🔒");
+
+    const lines = ($("importArea").value || "").split("\n").map(s=>s.trim()).filter(Boolean);
+    if(!lines.length) return toast("Paste at least 1 code");
+
+    let ok = 0, bad = 0;
+    lines.forEach(line => {
+      const r = applyTallyCode(line);
+      if(r.ok) ok++; else bad++;
+    });
+
+    save();
+    renderCards();
+    toast(`Imported: ${ok} ✅  Bad: ${bad} ⚠️`);
+  };
+
+  // -----------------------
+  // Self mode
+  // -----------------------
+  const updateSelfFromInputs = () => {
+    selfState.name = ($("myName").value || "Me").trim();
+    selfState.emoji = ($("myEmoji").value || "🙂").trim().slice(0,2);
+    saveSelf();
+    renderSelf();
+  };
+
+  const selfInc = (d) => {
+    if(state.locked) return toast("Locked 🔒");
+    const before = selfState.count|0;
+    const after = clamp0(before + d);
+    if(after === before) return;
+    selfState.count = after;
+    saveSelf();
+    renderSelf();
+    if(after === 5 || after === 10 || after === 15 || after === 20) confettiBurst();
+  };
+
+  const genSelfCode = () => {
+    updateSelfFromInputs();
+    const code = makeTallyCode(selfState.name, selfState.emoji, selfState.count);
+    $("codeBox").value = code;
+    toast("Code ready");
+  };
+
+  const copySelfCode = async () => {
+    const code = $("codeBox").value.trim();
+    if(!code) return toast("Generate code first");
+    try{
+      await navigator.clipboard.writeText(code);
+      toast("Copied ✅");
+      // Optional: try native share if available (won't hurt)
+      if(navigator.share){
+        // Don't force share; user can paste in chat anyway
+      }
+    }catch{
+      toast("Copy failed");
+    }
+  };
+
+  // -----------------------
+  // Mode switching
+  // -----------------------
+  const setMode = (mode) => {
+    const isGroup = mode === "group";
+    $("groupView").style.display = isGroup ? "" : "none";
+    $("selfView").style.display  = isGroup ? "none" : "";
+    $("tabGroup").classList.toggle("active", isGroup);
+    $("tabSelf").classList.toggle("active", !isGroup);
+  };
+
+  // -----------------------
+  // Wire up UI
+  // -----------------------
+  $("addPersonBtn").addEventListener("click", addPerson);
+  $("undoBtn").addEventListener("click", undo);
+  $("resetBtn").addEventListener("click", resetAll);
+  $("lockBtn").addEventListener("click", () => {
+    state.locked = !state.locked;
+    save();
+    setLockedUI();
+    toast(state.locked ? "Locked 🔒" : "Unlocked 🔓");
+  });
+
+  $("calcBtn").addEventListener("click", calcSplit);
+  $("copyBtn").addEventListener("click", copyResults);
+
+  $("importBtn").addEventListener("click", () => {
+    // jump user to import panel (mobile friendly)
+    $("importArea").scrollIntoView({ behavior:"smooth", block:"center" });
+    $("importArea").focus();
+  });
+  $("applyImportBtn").addEventListener("click", applyImportArea);
+  $("clearImportBtn").addEventListener("click", () => $("importArea").value = "");
+
+  $("tabGroup").addEventListener("click", () => setMode("group"));
+  $("tabSelf").addEventListener("click", () => setMode("self"));
+
+  $("myName").addEventListener("input", updateSelfFromInputs);
+  $("myEmoji").addEventListener("input", updateSelfFromInputs);
+  $("selfPlus").addEventListener("click", ()=>selfInc(+1));
+  $("selfMinus").addEventListener("click", ()=>selfInc(-1));
+  $("selfReset").addEventListener("click", ()=>{
+    if(!confirm("Reset your count?")) return;
+    selfState.count = 0;
+    saveSelf();
+    renderSelf();
+    toast("Reset");
+  });
+
+  $("shareCodeBtn").addEventListener("click", genSelfCode);
+  $("copyCodeBtn").addEventListener("click", copySelfCode);
+
+  // Initial render
+  setLockedUI();
+  renderCards();
+  renderSelf();
+  $("codeBox").value = makeTallyCode(selfState.name, selfState.emoji, selfState.count);
+
+</script>
+</body>
+</html>
