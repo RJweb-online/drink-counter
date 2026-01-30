@@ -465,8 +465,10 @@ const wireUp = () => {
   mustGet("calcBtn").addEventListener("click", calcSplit);
   mustGet("copyBtn").addEventListener("click", copyResults);
 
-  render();
-  toast("Loaded ✅"); // proves the script ran
+ // Start
+alert("JS loaded ✅");
+render();
+
 };
 
 // Run after DOM is ready (extra-safe)
