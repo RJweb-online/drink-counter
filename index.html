@@ -204,9 +204,10 @@ const makeId = () => {
 
   let state = safeParse(localStorage.getItem(LS_KEY), {
     people: [
-      { id: crypto.randomUUID(), name: "Alex", emoji:"😄", count: 0 },
-      { id: crypto.randomUUID(), name: "Sam",  emoji:"🧠", count: 0 },
-      { id: crypto.randomUUID(), name: "You",  emoji:"😎", count: 0 },
+      const person = { id: makeId(), name, emoji, count: 0 };
+      const person = { id: makeId(), name, emoji, count: 0 };
+      const person = { id: makeId(), name, emoji, count: 0 };
+
     ],
     history: []
   });
