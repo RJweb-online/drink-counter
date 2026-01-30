@@ -195,7 +195,12 @@
       holder.appendChild(p);
     }
     setTimeout(()=> holder.innerHTML="", 1400);
+
   };
+const makeId = () => {
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+};
 
   let state = safeParse(localStorage.getItem(LS_KEY), {
     people: [
