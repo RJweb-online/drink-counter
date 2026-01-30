@@ -174,47 +174,46 @@
     const el = $("toast");
     el.textContent = msg;
     el.classList.add("show");
-    setTimeout(()=>el.classList.remove("show"), 1100);
+    setTimeout(() => el.classList.remove("show"), 1100);
   };
 
   const safeParse = (s, fallback) => { try { return JSON.parse(s); } catch { return fallback; } };
-  const clamp0 = (n) => Math.max(0, n|0);
-
+  const clamp0 = (n) => Math.max(0, n | 0);
   const formatMoney = (n) => isFinite(n) ? Math.round(n).toLocaleString() : "—";
+
+  const makeId = () => {
+    try {
+      if (crypto && crypto.randomUUID) return crypto.randomUUID();
+    } catch {}
+    return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+  };
 
   const confettiBurst = () => {
     const holder = $("confetti");
     holder.innerHTML = "";
     const colors = ["#4f8cff","#2dd4bf","#fb7185","#a9b4d0","#fbbf24","#c084fc"];
-    for(let i=0;i<22;i++){
+    for (let i = 0; i < 22; i++) {
       const p = document.createElement("div");
       p.className = "piece";
-      p.style.left = (Math.random()*100) + "vw";
-      p.style.color = colors[(Math.random()*colors.length)|0];
-      p.style.animationDuration = (700 + Math.random()*700) + "ms";
+      p.style.left = (Math.random() * 100) + "vw";
+      p.style.color = colors[(Math.random() * colors.length) | 0];
+      p.style.animationDuration = (700 + Math.random() * 700) + "ms";
       holder.appendChild(p);
     }
-    setTimeout(()=> holder.innerHTML="", 1400);
-
+    setTimeout(() => holder.innerHTML = "", 1400);
   };
-const makeId = () => {
-  if (crypto && crypto.randomUUID) return crypto.randomUUID();
-  return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
-};
 
   let state = safeParse(localStorage.getItem(LS_KEY), {
     people: [
-      const person = { id: makeId(), name, emoji, count: 0 };
-      const person = { id: makeId(), name, emoji, count: 0 };
-      const person = { id: makeId(), name, emoji, count: 0 };
-
+      { id: makeId(), name: "Alex", emoji: "😄", count: 0 },
+      { id: makeId(), name: "Sam",  emoji: "🧠", count: 0 },
+      { id: makeId(), name: "You",  emoji: "😎", count: 0 }
     ],
     history: []
   });
 
   const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
-
-  const totalDrinks = () => state.people.reduce((a,p)=>a + (p.count|0), 0);
+  const totalDrinks = () => state.people.reduce((a, p) => a + (p.count | 0), 0);
 
   const escapeHtml = (str) => String(str ?? "")
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
@@ -222,7 +221,7 @@ const makeId = () => {
 
   const pushHistory = (entry) => {
     state.history.push(entry);
-    if(state.history.length > 60) state.history.shift();
+    if (state.history.length > 60) state.history.shift();
   };
 
   const render = () => {
@@ -246,7 +245,7 @@ const makeId = () => {
           <button class="btn secondary" data-action="edit" style="padding:8px 10px">✏️</button>
         </div>
 
-        <div class="count">${p.count|0}</div>
+        <div class="count">${p.count | 0}</div>
 
         <div class="miniRow">
           <button class="miniBtn minus" data-action="minus">-1</button>
@@ -257,11 +256,11 @@ const makeId = () => {
       // Tap card background = +1 (but ignore button taps)
       card.addEventListener("click", (e) => {
         const btn = e.target.closest("button");
-        if(btn){
+        if (btn) {
           const action = btn.dataset.action;
-          if(action === "minus") inc(p.id, -1);
-          if(action === "edit")  editPerson(p.id);
-          if(action === "remove") removePerson(p.id);
+          if (action === "minus") inc(p.id, -1);
+          if (action === "edit") editPerson(p.id);
+          if (action === "remove") removePerson(p.id);
           return;
         }
         inc(p.id, +1);
@@ -273,41 +272,45 @@ const makeId = () => {
 
   const inc = (id, delta) => {
     const p = state.people.find(x => x.id === id);
-    if(!p) return;
-    const before = p.count|0;
-    const after = clamp0(before + delta);
-    if(after === before) return;
+    if (!p) return;
 
-    pushHistory({ type:"inc", id, before, after });
+    const before = p.count | 0;
+    const after = clamp0(before + delta);
+    if (after === before) return;
+
+    pushHistory({ type: "inc", id, before, after });
     p.count = after;
     save();
     render();
 
-    // small fun moments
-    if(after === 5 || after === 10 || after === 15 || after === 20) confettiBurst();
+    if (after === 5 || after === 10 || after === 15 || after === 20) confettiBurst();
   };
 
   const editPerson = (id) => {
     const p = state.people.find(x => x.id === id);
-    if(!p) return;
+    if (!p) return;
 
     const name = prompt("Name:", p.name || "") ?? p.name;
     const emoji = prompt("Emoji (optional):", p.emoji || "🙂") ?? p.emoji;
 
-    pushHistory({ type:"edit", id, before:{name:p.name, emoji:p.emoji}, after:{name, emoji} });
+    pushHistory({ type: "edit", id, before: { name: p.name, emoji: p.emoji } });
+
     p.name = (name || "Friend").trim();
-    p.emoji = (emoji || "🙂").trim().slice(0,2);
+    p.emoji = (emoji || "🙂").trim().slice(0, 2);
+
     save();
     render();
   };
 
   const addPerson = () => {
     const name = (prompt("Name?") || "").trim();
-    if(!name) return;
-    const emoji = (prompt("Emoji? (optional)") || "🙂").trim().slice(0,2);
-    const person = { id: crypto.randomUUID(), name, emoji, count: 0 };
-    pushHistory({ type:"add", person });
+    if (!name) return;
+    const emoji = (prompt("Emoji? (optional)") || "🙂").trim().slice(0, 2);
+
+    const person = { id: makeId(), name, emoji, count: 0 };
+    pushHistory({ type: "add", person });
     state.people.push(person);
+
     save();
     render();
     toast("Added");
@@ -315,12 +318,13 @@ const makeId = () => {
 
   const removePerson = (id) => {
     const idx = state.people.findIndex(x => x.id === id);
-    if(idx < 0) return;
-    if(!confirm("Remove this person?")) return;
+    if (idx < 0) return;
+    if (!confirm("Remove this person?")) return;
 
     const removed = state.people[idx];
-    pushHistory({ type:"remove", removed, index: idx });
-    state.people.splice(idx,1);
+    pushHistory({ type: "remove", removed, index: idx });
+    state.people.splice(idx, 1);
+
     save();
     render();
     toast("Removed");
@@ -328,20 +332,20 @@ const makeId = () => {
 
   const undo = () => {
     const last = state.history.pop();
-    if(!last) return toast("Nothing to undo");
+    if (!last) return toast("Nothing to undo");
 
-    if(last.type === "inc"){
+    if (last.type === "inc") {
       const p = state.people.find(x => x.id === last.id);
-      if(p) p.count = last.before;
+      if (p) p.count = last.before;
     }
-    if(last.type === "edit"){
+    if (last.type === "edit") {
       const p = state.people.find(x => x.id === last.id);
-      if(p){ p.name = last.before.name; p.emoji = last.before.emoji; }
+      if (p) { p.name = last.before.name; p.emoji = last.before.emoji; }
     }
-    if(last.type === "add"){
+    if (last.type === "add") {
       state.people = state.people.filter(x => x.id !== last.person.id);
     }
-    if(last.type === "remove"){
+    if (last.type === "remove") {
       state.people.splice(last.index, 0, last.removed);
     }
 
@@ -351,7 +355,7 @@ const makeId = () => {
   };
 
   const resetAll = () => {
-    if(!confirm("Reset all counts?")) return;
+    if (!confirm("Reset all counts?")) return;
     state.people.forEach(p => p.count = 0);
     state.history = [];
     save();
@@ -362,31 +366,26 @@ const makeId = () => {
   };
 
   const calcSplit = () => {
-    const bill = Number(($("billInput").value || "0").replace(/,/g,""));
-    if(!isFinite(bill) || bill <= 0) return toast("Enter a total bill");
+    const bill = Number(($("billInput").value || "0").replace(/,/g, ""));
+    if (!isFinite(bill) || bill <= 0) return toast("Enter a total bill");
+
     const t = totalDrinks();
-    if(t <= 0) return toast("No drinks counted yet");
-    if(!state.people.length) return toast("No people");
+    if (t <= 0) return toast("No drinks counted yet");
+    if (!state.people.length) return toast("No people");
 
     const perDrink = bill / t;
-
-    const rows = state.people.map(p => {
-      const amt = (p.count|0) * perDrink;
-      return {
-        label: `${p.emoji || "🙂"} ${p.name || "Friend"}`,
-        count: p.count|0,
-        amount: formatMoney(amt)
-      };
-    });
-
     const out = $("results");
     out.innerHTML = "";
-    rows.forEach(r => {
+
+    state.people.forEach(p => {
+      const amt = (p.count | 0) * perDrink;
       const div = document.createElement("div");
       div.className = "resultRow";
       div.innerHTML = `
-        <div><b>${escapeHtml(r.label)}</b> <span style="color:#a9b4d0">(${r.count})</span></div>
-        <div><b>${r.amount}</b></div>
+        <div><b>${escapeHtml(`${p.emoji || "🙂"} ${p.name || "Friend"}`)}</b>
+          <span style="color:#a9b4d0">(${p.count | 0})</span>
+        </div>
+        <div><b>${formatMoney(amt)}</b></div>
       `;
       out.appendChild(div);
     });
@@ -396,23 +395,26 @@ const makeId = () => {
 
   const copyResults = async () => {
     const out = $("results");
-    if(!out.children.length) return toast("No results yet");
+    if (!out.children.length) return toast("No results yet");
+
     const bill = $("billInput").value || "";
-    const lines = [];
-    lines.push(`Drink Counter 🍻`);
-    lines.push(`Total bill: ${bill}`);
-    lines.push(`Total drinks: ${totalDrinks()}`);
-    lines.push("");
+    const lines = [
+      "Drink Counter 🍻",
+      `Total bill: ${bill}`,
+      `Total drinks: ${totalDrinks()}`,
+      ""
+    ];
+
     [...out.children].forEach(row => {
       const left = row.children[0].innerText;
       const right = row.children[1].innerText;
       lines.push(`${left} → ${right}`);
     });
-    const text = lines.join("\n");
-    try{
-      await navigator.clipboard.writeText(text);
+
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
       toast("Copied ✅");
-    }catch{
+    } catch {
       toast("Copy failed");
     }
   };
