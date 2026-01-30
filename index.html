@@ -167,11 +167,13 @@
   <div class="confetti" id="confetti"></div>
 
 <script>
+(() => {
   const LS_KEY = "drink_counter_simple_v1";
   const $ = (id) => document.getElementById(id);
 
   const toast = (msg) => {
     const el = $("toast");
+    if (!el) return;
     el.textContent = msg;
     el.classList.add("show");
     setTimeout(() => el.classList.remove("show"), 1100);
@@ -183,13 +185,44 @@
 
   const makeId = () => {
     try {
-      if (crypto && crypto.randomUUID) return crypto.randomUUID();
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
     } catch {}
     return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
   };
 
+  const defaultPeople = () => ([
+    { id: makeId(), name: "Alex", emoji: "😄", count: 0 },
+    { id: makeId(), name: "Sam",  emoji: "🧠", count: 0 },
+    { id: makeId(), name: "You",  emoji: "😎", count: 0 }
+  ]);
+
+  let state = safeParse(localStorage.getItem(LS_KEY), { people: defaultPeople(), history: [] });
+
+  const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
+
+  // Self-heal bad/empty saved data
+  if (!state || typeof state !== "object") state = { people: defaultPeople(), history: [] };
+  if (!Array.isArray(state.people)) state.people = [];
+  if (!Array.isArray(state.history)) state.history = [];
+  if (state.people.length === 0) {
+    state.people = defaultPeople();
+    save();
+  }
+
+  const totalDrinks = () => state.people.reduce((a, p) => a + (p.count | 0), 0);
+
+  const escapeHtml = (str) => String(str ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+
+  const pushHistory = (entry) => {
+    state.history.push(entry);
+    if (state.history.length > 60) state.history.shift();
+  };
+
   const confettiBurst = () => {
     const holder = $("confetti");
+    if (!holder) return;
     holder.innerHTML = "";
     const colors = ["#4f8cff","#2dd4bf","#fb7185","#a9b4d0","#fbbf24","#c084fc"];
     for (let i = 0; i < 22; i++) {
@@ -203,60 +236,15 @@
     setTimeout(() => holder.innerHTML = "", 1400);
   };
 
-  let state = safeParse(localStorage.getItem(LS_KEY), {
-    people: [
-      { id: makeId(), name: "Alex", emoji: "😄", count: 0 },
-      { id: makeId(), name: "Sam",  emoji: "🧠", count: 0 },
-      { id: makeId(), name: "You",  emoji: "😎", count: 0 }
-    ],
-    history: []
-  });
-// --- Self-heal if saved data is missing/corrupt ---
-if (!state || typeof state !== "object") state = {};
-if (!Array.isArray(state.people)) state.people = [];
-if (!Array.isArray(state.history)) state.history = [];
-
-if (state.people.length === 0) {
-  state.people = [
-    { id: makeId(), name: "Alex", emoji: "😄", count: 0 },
-    { id: makeId(), name: "Sam",  emoji: "🧠", count: 0 },
-    { id: makeId(), name: "You",  emoji: "😎", count: 0 }
-  ];
-  save();
-}
-// --- Self-heal if saved data is missing/corrupt ---
-if (!state || typeof state !== "object") state = {};
-if (!Array.isArray(state.people)) state.people = [];
-if (!Array.isArray(state.history)) state.history = [];
-
-// If people got wiped somehow, restore defaults
-if (state.people.length === 0) {
-  state.people = [
-    { id: makeId(), name: "Alex", emoji: "😄", count: 0 },
-    { id: makeId(), name: "Sam",  emoji: "🧠", count: 0 },
-    { id: makeId(), name: "You",  emoji: "😎", count: 0 }
-  ];
-  save();
-}
-
-  const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
-  const totalDrinks = () => state.people.reduce((a, p) => a + (p.count | 0), 0);
-
-  const escapeHtml = (str) => String(str ?? "")
-    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-
-  const pushHistory = (entry) => {
-    state.history.push(entry);
-    if (state.history.length > 60) state.history.shift();
-  };
-
   const render = () => {
-    $("totalPill").textContent = `Total drinks: ${totalDrinks()}`;
-    const wrap = $("cards");
-    wrap.innerHTML = "";
+    const totalPill = $("totalPill");
+    const cardsWrap = $("cards");
+    if (!totalPill || !cardsWrap) return;
 
-    state.people.forEach(p => {
+    totalPill.textContent = `Total drinks: ${totalDrinks()}`;
+    cardsWrap.innerHTML = "";
+
+    state.people.forEach((p) => {
       const card = document.createElement("div");
       card.className = "card";
 
@@ -280,7 +268,6 @@ if (state.people.length === 0) {
         </div>
       `;
 
-      // Tap card background = +1 (but ignore button taps)
       card.addEventListener("click", (e) => {
         const btn = e.target.closest("button");
         if (btn) {
@@ -293,12 +280,12 @@ if (state.people.length === 0) {
         inc(p.id, +1);
       });
 
-      wrap.appendChild(card);
+      cardsWrap.appendChild(card);
     });
   };
 
   const inc = (id, delta) => {
-    const p = state.people.find(x => x.id === id);
+    const p = state.people.find((x) => x.id === id);
     if (!p) return;
 
     const before = p.count | 0;
@@ -314,11 +301,14 @@ if (state.people.length === 0) {
   };
 
   const editPerson = (id) => {
-    const p = state.people.find(x => x.id === id);
+    const p = state.people.find((x) => x.id === id);
     if (!p) return;
 
     const name = prompt("Name:", p.name || "") ?? p.name;
+    if (name === null) return;
+
     const emoji = prompt("Emoji (optional):", p.emoji || "🙂") ?? p.emoji;
+    if (emoji === null) return;
 
     pushHistory({ type: "edit", id, before: { name: p.name, emoji: p.emoji } });
 
@@ -330,11 +320,16 @@ if (state.people.length === 0) {
   };
 
   const addPerson = () => {
-    const name = (prompt("Name?") || "").trim();
-    if (!name) return;
-    const emoji = (prompt("Emoji? (optional)") || "🙂").trim().slice(0, 2);
+    const name = prompt("Name?");
+    if (name === null) return;
+    const cleanName = (name || "").trim();
+    if (!cleanName) return;
 
-    const person = { id: makeId(), name, emoji, count: 0 };
+    const emoji = prompt("Emoji? (optional)");
+    if (emoji === null) return;
+    const cleanEmoji = ((emoji || "🙂").trim().slice(0, 2)) || "🙂";
+
+    const person = { id: makeId(), name: cleanName, emoji: cleanEmoji, count: 0 };
     pushHistory({ type: "add", person });
     state.people.push(person);
 
@@ -344,7 +339,7 @@ if (state.people.length === 0) {
   };
 
   const removePerson = (id) => {
-    const idx = state.people.findIndex(x => x.id === id);
+    const idx = state.people.findIndex((x) => x.id === id);
     if (idx < 0) return;
     if (!confirm("Remove this person?")) return;
 
@@ -362,15 +357,15 @@ if (state.people.length === 0) {
     if (!last) return toast("Nothing to undo");
 
     if (last.type === "inc") {
-      const p = state.people.find(x => x.id === last.id);
+      const p = state.people.find((x) => x.id === last.id);
       if (p) p.count = last.before;
     }
     if (last.type === "edit") {
-      const p = state.people.find(x => x.id === last.id);
+      const p = state.people.find((x) => x.id === last.id);
       if (p) { p.name = last.before.name; p.emoji = last.before.emoji; }
     }
     if (last.type === "add") {
-      state.people = state.people.filter(x => x.id !== last.person.id);
+      state.people = state.people.filter((x) => x.id !== last.person.id);
     }
     if (last.type === "remove") {
       state.people.splice(last.index, 0, last.removed);
@@ -383,17 +378,23 @@ if (state.people.length === 0) {
 
   const resetAll = () => {
     if (!confirm("Reset all counts?")) return;
-    state.people.forEach(p => p.count = 0);
+    state.people.forEach((p) => p.count = 0);
     state.history = [];
     save();
     render();
-    $("results").innerHTML = "";
-    $("billInput").value = "";
+    const results = $("results");
+    const billInput = $("billInput");
+    if (results) results.innerHTML = "";
+    if (billInput) billInput.value = "";
     toast("Reset");
   };
 
   const calcSplit = () => {
-    const bill = Number(($("billInput").value || "0").replace(/,/g, ""));
+    const billInput = $("billInput");
+    const results = $("results");
+    if (!billInput || !results) return;
+
+    const bill = Number((billInput.value || "0").replace(/,/g, ""));
     if (!isFinite(bill) || bill <= 0) return toast("Enter a total bill");
 
     const t = totalDrinks();
@@ -401,10 +402,9 @@ if (state.people.length === 0) {
     if (!state.people.length) return toast("No people");
 
     const perDrink = bill / t;
-    const out = $("results");
-    out.innerHTML = "";
+    results.innerHTML = "";
 
-    state.people.forEach(p => {
+    state.people.forEach((p) => {
       const amt = (p.count | 0) * perDrink;
       const div = document.createElement("div");
       div.className = "resultRow";
@@ -414,25 +414,26 @@ if (state.people.length === 0) {
         </div>
         <div><b>${formatMoney(amt)}</b></div>
       `;
-      out.appendChild(div);
+      results.appendChild(div);
     });
 
     toast("Calculated");
   };
 
   const copyResults = async () => {
-    const out = $("results");
-    if (!out.children.length) return toast("No results yet");
+    const results = $("results");
+    const billInput = $("billInput");
+    if (!results || !billInput) return;
+    if (!results.children.length) return toast("No results yet");
 
-    const bill = $("billInput").value || "";
     const lines = [
       "Drink Counter 🍻",
-      `Total bill: ${bill}`,
+      `Total bill: ${billInput.value || ""}`,
       `Total drinks: ${totalDrinks()}`,
       ""
     ];
 
-    [...out.children].forEach(row => {
+    [...results.children].forEach((row) => {
       const left = row.children[0].innerText;
       const right = row.children[1].innerText;
       lines.push(`${left} → ${right}`);
@@ -446,34 +447,26 @@ if (state.people.length === 0) {
     }
   };
 
-// ---------- Debug + safe wiring ----------
-window.addEventListener("error", (e) => {
-  // If anything crashes, you’ll see it immediately
-  alert("JS error: " + (e.message || e.error || "unknown"));
-});
+  // Wire up (after DOM is ready)
+  document.addEventListener("DOMContentLoaded", () => {
+    const addBtn = $("addBtn");
+    const undoBtn = $("undoBtn");
+    const resetBtn = $("resetBtn");
+    const calcBtn = $("calcBtn");
+    const copyBtn = $("copyBtn");
 
-const mustGet = (id) => {
-  const el = $(id);
-  if (!el) throw new Error(`Missing element #${id} (ID mismatch in HTML)`);
-  return el;
-};
+    // If ANY of these are missing, do nothing (prevents crashes)
+    if (!addBtn || !undoBtn || !resetBtn || !calcBtn || !copyBtn) return;
 
-const wireUp = () => {
-  mustGet("addBtn").addEventListener("click", addPerson);
-  mustGet("undoBtn").addEventListener("click", undo);
-  mustGet("resetBtn").addEventListener("click", resetAll);
-  mustGet("calcBtn").addEventListener("click", calcSplit);
-  mustGet("copyBtn").addEventListener("click", copyResults);
+    addBtn.addEventListener("click", addPerson);
+    undoBtn.addEventListener("click", undo);
+    resetBtn.addEventListener("click", resetAll);
+    calcBtn.addEventListener("click", calcSplit);
+    copyBtn.addEventListener("click", copyResults);
 
- // Start
-alert("JS loaded ✅");
-render();
-
-};
-
-// Run after DOM is ready (extra-safe)
-document.addEventListener("DOMContentLoaded", wireUp);
-
+    render();
+  });
+})();
 </script>
 </body>
 </html>
