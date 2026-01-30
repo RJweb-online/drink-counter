@@ -216,6 +216,19 @@ if (!state || typeof state !== "object") state = {};
 if (!Array.isArray(state.people)) state.people = [];
 if (!Array.isArray(state.history)) state.history = [];
 
+if (state.people.length === 0) {
+  state.people = [
+    { id: makeId(), name: "Alex", emoji: "😄", count: 0 },
+    { id: makeId(), name: "Sam",  emoji: "🧠", count: 0 },
+    { id: makeId(), name: "You",  emoji: "😎", count: 0 }
+  ];
+  save();
+}
+// --- Self-heal if saved data is missing/corrupt ---
+if (!state || typeof state !== "object") state = {};
+if (!Array.isArray(state.people)) state.people = [];
+if (!Array.isArray(state.history)) state.history = [];
+
 // If people got wiped somehow, restore defaults
 if (state.people.length === 0) {
   state.people = [
@@ -433,15 +446,32 @@ if (state.people.length === 0) {
     }
   };
 
-  // Wire up
-  $("addBtn").addEventListener("click", addPerson);
-  $("undoBtn").addEventListener("click", undo);
-  $("resetBtn").addEventListener("click", resetAll);
-  $("calcBtn").addEventListener("click", calcSplit);
-  $("copyBtn").addEventListener("click", copyResults);
+// ---------- Debug + safe wiring ----------
+window.addEventListener("error", (e) => {
+  // If anything crashes, you’ll see it immediately
+  alert("JS error: " + (e.message || e.error || "unknown"));
+});
 
-  // Start
+const mustGet = (id) => {
+  const el = $(id);
+  if (!el) throw new Error(`Missing element #${id} (ID mismatch in HTML)`);
+  return el;
+};
+
+const wireUp = () => {
+  mustGet("addBtn").addEventListener("click", addPerson);
+  mustGet("undoBtn").addEventListener("click", undo);
+  mustGet("resetBtn").addEventListener("click", resetAll);
+  mustGet("calcBtn").addEventListener("click", calcSplit);
+  mustGet("copyBtn").addEventListener("click", copyResults);
+
   render();
+  toast("Loaded ✅"); // proves the script ran
+};
+
+// Run after DOM is ready (extra-safe)
+document.addEventListener("DOMContentLoaded", wireUp);
+
 </script>
 </body>
 </html>
