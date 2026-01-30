@@ -211,6 +211,20 @@
     ],
     history: []
   });
+// --- Self-heal if saved data is missing/corrupt ---
+if (!state || typeof state !== "object") state = {};
+if (!Array.isArray(state.people)) state.people = [];
+if (!Array.isArray(state.history)) state.history = [];
+
+// If people got wiped somehow, restore defaults
+if (state.people.length === 0) {
+  state.people = [
+    { id: makeId(), name: "Alex", emoji: "😄", count: 0 },
+    { id: makeId(), name: "Sam",  emoji: "🧠", count: 0 },
+    { id: makeId(), name: "You",  emoji: "😎", count: 0 }
+  ];
+  save();
+}
 
   const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
   const totalDrinks = () => state.people.reduce((a, p) => a + (p.count | 0), 0);
