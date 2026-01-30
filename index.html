@@ -123,51 +123,48 @@
     @keyframes fall{
       to{ transform: translateY(calc(100vh + 40px)) rotate(380deg); opacity:0.95;}
     }
-/* --- Leader razz overlay --- */
-.razz{
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-  z-index: 80;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-.razz.show{ opacity: 1; }
 
-.razz .face{
-  font-size: 92px;
-  filter: drop-shadow(0 16px 30px rgba(0,0,0,.5));
-  transform-origin: 50% 60%;
-  animation: wobble 780ms ease-in-out;
-}
-
-.razz .label{
-  margin-top: 10px;
-  font-size: 14px;
-  color: var(--text);
-  opacity: .9;
-  background: rgba(15,23,41,.75);
-  border: 1px solid var(--line);
-  padding: 8px 12px;
-  border-radius: 999px;
-  box-shadow: var(--shadow);
-  max-width: 90vw;
-  text-align: center;
-}
-
-@keyframes wobble{
-  0%   { transform: translateY(8px) rotate(0deg) scale(0.98); }
-  10%  { transform: translateY(0) rotate(-10deg) scale(1.02); }
-  25%  { transform: rotate(12deg) }
-  40%  { transform: rotate(-14deg) }
-  55%  { transform: rotate(10deg) }
-  70%  { transform: rotate(-8deg) }
-  85%  { transform: rotate(6deg) }
-  100% { transform: translateY(6px) rotate(0deg) scale(0.98); }
-}
-
+    /* --- Leader razz overlay --- */
+    .razz{
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      z-index: 80;
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+    .razz.show{ opacity: 1; }
+    .razz .face{
+      font-size: 92px;
+      filter: drop-shadow(0 16px 30px rgba(0,0,0,.5));
+      transform-origin: 50% 60%;
+      animation: wobble 780ms ease-in-out;
+    }
+    .razz .label{
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--text);
+      opacity: .9;
+      background: rgba(15,23,41,.75);
+      border: 1px solid var(--line);
+      padding: 8px 12px;
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      max-width: 90vw;
+      text-align: center;
+    }
+    @keyframes wobble{
+      0%   { transform: translateY(8px) rotate(0deg) scale(0.98); }
+      10%  { transform: translateY(0) rotate(-10deg) scale(1.02); }
+      25%  { transform: rotate(12deg) }
+      40%  { transform: rotate(-14deg) }
+      55%  { transform: rotate(10deg) }
+      70%  { transform: rotate(-8deg) }
+      85%  { transform: rotate(6deg) }
+      100% { transform: translateY(6px) rotate(0deg) scale(0.98); }
+    }
   </style>
 </head>
 <body>
@@ -210,13 +207,8 @@
 
   <div class="toast" id="toast">Saved</div>
   <div class="confetti" id="confetti"></div>
-  <div class="toast" id="toast">Saved</div>
-  <div class="confetti" id="confetti"></div>
   <div class="razz" id="razz"></div>
 
-<script>
-
-  
 <script>
 (() => {
   const LS_KEY = "drink_counter_simple_v1";
@@ -248,7 +240,6 @@
   ]);
 
   let state = safeParse(localStorage.getItem(LS_KEY), { people: defaultPeople(), history: [] });
-
   const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
 
   // Self-heal bad/empty saved data
@@ -285,6 +276,25 @@
       holder.appendChild(p);
     }
     setTimeout(() => holder.innerHTML = "", 1400);
+  };
+
+  const razzLeader = (person, count) => {
+    const el = $("razz");
+    if (!el) return;
+
+    const faces = ["🥴","🍺","💫","🤢","🕺","🚑"];
+    const face = faces[(Math.random() * faces.length) | 0];
+
+    el.innerHTML = `
+      <div style="display:grid; place-items:center;">
+        <div class="face">${face}</div>
+        <div class="label">${(person.emoji || "🍻")} ${(person.name || "Someone")} is leading at ${count}… steady now 😅</div>
+      </div>
+    `;
+
+    el.classList.add("show");
+    clearTimeout(razzLeader._t);
+    razzLeader._t = setTimeout(() => el.classList.remove("show"), 820);
   };
 
   const render = () => {
@@ -335,72 +345,48 @@
     });
   };
 
- const razzLeader = (person, count) => {
-  const el = $("razz");
-  if (!el) return;
-
-  const faces = ["🥴","🍺","💫","🤢","🕺","🚑"];
-  const face = faces[(Math.random() * faces.length) | 0];
-
-  el.innerHTML = `
-    <div style="display:grid; place-items:center;">
-      <div class="face">${face}</div>
-      <div class="label">${(person.emoji || "🍻")} ${(person.name || "Someone")} is leading at ${count}… steady now 😅</div>
-    </div>
-  `;
-
-  el.classList.add("show");
-  clearTimeout(razzLeader._t);
-  razzLeader._t = setTimeout(() => el.classList.remove("show"), 820);
-};
-
   const inc = (id, delta) => {
-  const p = state.people.find((x) => x.id === id);
-  if (!p) return;
+    const p = state.people.find((x) => x.id === id);
+    if (!p) return;
 
-  const before = p.count | 0;
-  const after = clamp0(before + delta);
-  if (after === before) return;
+    const before = p.count | 0;
+    const after = clamp0(before + delta);
+    if (after === before) return;
 
-  pushHistory({ type: "inc", id, before, after });
-  p.count = after;
-  save();
-  render();
+    pushHistory({ type: "inc", id, before, after });
+    p.count = after;
+    save();
+    render();
 
-  // milestone confetti
-  if (after === 5 || after === 10 || after === 15 || after === 20) confettiBurst();
+    // milestone confetti
+    if (after === 5 || after === 10 || after === 15 || after === 20) confettiBurst();
 
-  // Razz the current leader when they add another drink after 5
-if (delta > 0 && after >= 6) {
-  const max = Math.max(...state.people.map(pp => pp.count | 0));
-  const leaders = state.people.filter(pp => (pp.count | 0) === max);
-  const isLeader = leaders.some(l => l.id === id);
-
-  if (isLeader) {
-    razzLeader(p, after);
-  }
-}
-
-    // ---- RAZZ THE CURRENT LEADER (dynamic) ----
-  // Only when adding (not subtracting), and only after 5 drinks
-  if (delta > 0 && after >= 6) {
-    const max = Math.max(...state.people.map(pp => pp.count | 0));
-    const leaders = state.people.filter(pp => (pp.count | 0) === max);
-
-    const isLeader = leaders.some(l => l.id === id);
-
-    // Only razz if the person you just tapped is (one of) the current leader(s)
-    if (isLeader) {
-      const faces = ["🥴", "🍺", "🤢", "🤡", "🕺", "🚑", "💫"];
-      const msg = `${p.emoji || "🥴"} ${p.name || "Someone"} is leading at ${after}… pace yourself! ${faces[(Math.random()*faces.length)|0]}`;
-      toast(msg);
-
-      // optional: tiny celebration for the chaos (comment out if too much)
-      if (after % 2 === 0) confettiBurst();
+    // razz leader after 5 when adding
+    if (delta > 0 && after >= 6) {
+      const max = Math.max(...state.people.map(pp => pp.count | 0));
+      const isLeader = (p.count | 0) === max;
+      if (isLeader) razzLeader(p, after);
     }
-  }
-};
+  };
 
+  const editPerson = (id) => {
+    const p = state.people.find((x) => x.id === id);
+    if (!p) return;
+
+    const name = prompt("Name:", p.name || "");
+    if (name === null) return;
+
+    const emoji = prompt("Emoji (optional):", p.emoji || "🙂");
+    if (emoji === null) return;
+
+    pushHistory({ type: "edit", id, before: { name: p.name, emoji: p.emoji } });
+
+    p.name = (name || "Friend").trim();
+    p.emoji = (emoji || "🙂").trim().slice(0, 2);
+
+    save();
+    render();
+  };
 
   const addPerson = () => {
     const name = prompt("Name?");
@@ -530,15 +516,12 @@ if (delta > 0 && after >= 6) {
     }
   };
 
-  // Wire up (after DOM is ready)
   document.addEventListener("DOMContentLoaded", () => {
     const addBtn = $("addBtn");
     const undoBtn = $("undoBtn");
     const resetBtn = $("resetBtn");
     const calcBtn = $("calcBtn");
     const copyBtn = $("copyBtn");
-
-    // If ANY of these are missing, do nothing (prevents crashes)
     if (!addBtn || !undoBtn || !resetBtn || !calcBtn || !copyBtn) return;
 
     addBtn.addEventListener("click", addPerson);
