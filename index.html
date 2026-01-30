@@ -284,40 +284,42 @@
     });
   };
 
-  const inc = (id, delta) => {
-    const p = state.people.find((x) => x.id === id);
-    if (!p) return;
+ const inc = (id, delta) => {
+  const p = state.people.find((x) => x.id === id);
+  if (!p) return;
 
-    const before = p.count | 0;
-    const after = clamp0(before + delta);
-    if (after === before) return;
+  const before = p.count | 0;
+  const after = clamp0(before + delta);
+  if (after === before) return;
 
-    pushHistory({ type: "inc", id, before, after });
-    p.count = after;
-    save();
-    render();
+  pushHistory({ type: "inc", id, before, after });
+  p.count = after;
+  save();
+  render();
 
-    if (after === 5 || after === 10 || after === 15 || after === 20) confettiBurst();
-  };
+  // milestone confetti
+  if (after === 5 || after === 10 || after === 15 || after === 20) confettiBurst();
 
-  const editPerson = (id) => {
-    const p = state.people.find((x) => x.id === id);
-    if (!p) return;
+  // ---- RAZZ THE CURRENT LEADER (dynamic) ----
+  // Only when adding (not subtracting), and only after 5 drinks
+  if (delta > 0 && after >= 6) {
+    const max = Math.max(...state.people.map(pp => pp.count | 0));
+    const leaders = state.people.filter(pp => (pp.count | 0) === max);
 
-    const name = prompt("Name:", p.name || "") ?? p.name;
-    if (name === null) return;
+    const isLeader = leaders.some(l => l.id === id);
 
-    const emoji = prompt("Emoji (optional):", p.emoji || "🙂") ?? p.emoji;
-    if (emoji === null) return;
+    // Only razz if the person you just tapped is (one of) the current leader(s)
+    if (isLeader) {
+      const faces = ["🥴", "🍺", "🤢", "🤡", "🕺", "🚑", "💫"];
+      const msg = `${p.emoji || "🥴"} ${p.name || "Someone"} is leading at ${after}… pace yourself! ${faces[(Math.random()*faces.length)|0]}`;
+      toast(msg);
 
-    pushHistory({ type: "edit", id, before: { name: p.name, emoji: p.emoji } });
+      // optional: tiny celebration for the chaos (comment out if too much)
+      if (after % 2 === 0) confettiBurst();
+    }
+  }
+};
 
-    p.name = (name || "Friend").trim();
-    p.emoji = (emoji || "🙂").trim().slice(0, 2);
-
-    save();
-    render();
-  };
 
   const addPerson = () => {
     const name = prompt("Name?");
